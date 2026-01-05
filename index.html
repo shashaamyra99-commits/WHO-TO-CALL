@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Phone Booth Kiosk — Keypad</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap');
+
+:root{
+  --red-1:#8b0000;
+  --red-2:#b30000;
+  --accent:#ff4d4d;
+  --panel:rgba(255,255,255,0.15);
+}
+
+*{
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+
+html,body{height:100%;margin:0}
+body{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'Poppins',sans-serif;
+  background:linear-gradient(90deg,var(--red-1),var(--red-2));
+  background-size:400% 400%;
+  animation:redFlow 8s ease infinite;
+  color:white;
+  overflow:hidden;
+}
+@keyframes redFlow{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+
+.ripple-droplet{animation:rippleDroplet 1.6s infinite ease-in-out}
+@keyframes rippleDroplet{
+  0%{filter:none}
+  40%{filter:brightness(1.06)}
+  100%{filter:none}
+}
+
+.scene{
+  width:540px;
+  max-width:95vw;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:20px;
+  padding:30px 15px;
+  position:relative;
+}
+
+.sign{
+  width:100%;
+  text-align:center;
+  font-weight:700;
+  letter-spacing:4px;
+  font-size:26px;
+  padding:12px 0;
+  background:linear-gradient(180deg,rgba(255,255,255,0.2),rgba(0,0,0,0.1));
+  border-radius:12px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.35);
+}
+
+.display{
+  width:100%;
+  padding:30px 25px 20px;
+  background:var(--panel);
+  border-radius:22px;
+  box-shadow:0 12px 35px rgba(0,0,0,0.3);
+  backdrop-filter:blur(8px);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:260px;
+}
+
+/* welcome */
+#welcomeScreen{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  height:200px;
+  text-align:center;
+  gap:18px;
+}
+#welcomeScreen h1{
+  font-size:28px;
+  line-height:1.05;
+}
+#welcomeScreen button{
+  padding:12px 20px;
+  font-size:18px;
+  border:none;
+  border-radius:10px;
+  background:var(--accent);
+  color:white;
+  cursor:pointer;
+  font-weight:700;
+}
+
+.keypad{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:18px;
+  width:100%;
+  max-width:390px;
+}
+.keypad button{
+  aspect-ratio:1/1;
+  width:100%;
+  border-radius:18px;
+  border:none;
+  font-size:30px;
+  font-weight:700;
+  background:rgba(255,255,255,0.20);
+  color:white;
+  box-shadow:0 10px 30px rgba(0,0,0,0.35);
+  cursor:pointer;
+}
+
+.player{
+  width:100%;
+  display:none;
+  flex-direction:column;
+  gap:8px;
+  justify-content:center;
+  align-items:center;
+  min-height:110px;
+}
+
+.bar-wrap{
+  width:100%;
+  height:22px;
+  background:rgba(255,255,255,0.12);
+  border-radius:14px;
+  overflow:hidden;
+}
+.bar{
+  height:100%;
+  width:0%;
+  background:linear-gradient(270deg,#ff6666,#ff9999,#ff0000,#ff6666);
+  background-size:400% 100%;
+}
+
+.message{
+  font-size:18px;
+  font-weight:600;
+}
+
+#repeatBtn{
+  padding:6px 14px;
+  font-size:16px;
+  border:none;
+  border-radius:8px;
+  background:var(--accent);
+  color:white;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.lang-switch{
+  position:absolute;
+  bottom:0;
+  right:0;
+  font-size:14px;
+}
+.lang-switch button{
+  background:none;
+  border:none;
+  color:white;
+  font-weight:700;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+<div class="scene">
+  <div class="sign">TELEFON</div>
+
+  <div class="display" id="screen"></div>
+
+  <div class="player" id="player">
+    <div class="bar-wrap"><div class="bar" id="bar"></div></div>
+    <div class="message" id="playerMessage"></div>
+    <button id="repeatBtn"></button>
+  </div>
+
+  <div class="lang-switch" id="langSwitch">
+    <button id="langMs">MALAY</button> |
+    <button id="langEn">ENGLISH</button>
+  </div>
+</div>
+
+<!-- AUDIO -->
+<audio id="ringtone" src="ring.mp3" preload="auto"></audio>
+
+<audio id="audio1" src="audio1.mp3"></audio>
+<audio id="audio2" src="audio2.mp3"></audio>
+<audio id="audio3" src="audio3.mp3"></audio>
+<audio id="audio4" src="audio4.mp3"></audio>
+
+<audio id="audio_eng1" src="audio_eng1.mp3"></audio>
+<audio id="audio_eng2" src="audio_eng2.mp3"></audio>
+<audio id="audio_eng3" src="audio_eng3.mp3"></audio>
+<audio id="audio_eng4" src="audio_eng4.mp3"></audio>
+
+<script>
+const screen = document.getElementById('screen');
+const player = document.getElementById('player');
+const playerMessage = document.getElementById('playerMessage');
+const bar = document.getElementById('bar');
+const repeatBtn = document.getElementById('repeatBtn');
+const langSwitch = document.getElementById('langSwitch');
+
+let lang = 'ms';
+let currentAudio = null;
+let audioUnlocked = false;
+let rafId = null;
+
+const text = {
+  ms:{
+    welcome:'SELAMAT DATANG KE<br>WHO TO CALL',
+    start:'Mula',
+    calling:'Memanggil Hotline...',
+    pilih:'Pilih Hotline',
+    playing:'Sedang memainkan audio...',
+    thanks:'Terima kasih kerana mendengar',
+    card:'Sila ambil kad anda',
+    repeat:'Ulang'
+  },
+  en:{
+    welcome:'WELCOME TO<br>WHO TO CALL',
+    start:'Start',
+    calling:'Calling Hotline...',
+    pilih:'Select Hotline',
+    playing:'Now playing audio...',
+    thanks:'Thank you for listening',
+    card:'Please take your card',
+    repeat:'Repeat'
+  }
+};
+
+function unlockAudio(){
+  if(audioUnlocked) return;
+  [
+    ringtone,audio1,audio2,audio3,audio4,
+    audio_eng1,audio_eng2,audio_eng3,audio_eng4
+  ].forEach(a=>{
+    a.muted=true;
+    a.play().catch(()=>{});
+    a.pause();
+    a.currentTime=0;
+    a.muted=false;
+  });
+  audioUnlocked=true;
+}
+
+function stopAllAudio(){
+  [
+    ringtone,audio1,audio2,audio3,audio4,
+    audio_eng1,audio_eng2,audio_eng3,audio_eng4
+  ].forEach(a=>{
+    a.pause();
+    a.currentTime=0;
+  });
+  currentAudio=null;
+  player.style.display='none';
+  cancelAnimationFrame(rafId);
+}
+
+function safePlay(a){
+  if(!a) return;
+  const p=a.play();
+  if(p!==undefined) p.catch(()=>{});
+}
+
+function renderWelcome(){
+  stopAllAudio();
+  langSwitch.style.display='block';
+  screen.innerHTML=`
+    <div id="welcomeScreen">
+      <h1>${text[lang].welcome}</h1>
+      <button id="startBtn">${text[lang].start}</button>
+    </div>`;
+  const btn=document.getElementById('startBtn');
+  btn.addEventListener('pointerdown',unlockAudio,{once:true});
+  btn.addEventListener('pointerup',startCall);
+}
+
+function startCall(){
+  stopAllAudio();
+  langSwitch.style.display='none';
+  screen.innerHTML=`<div class="calling">${text[lang].calling}</div>`;
+  document.body.classList.add('ripple-droplet');
+  safePlay(ringtone);
+  setTimeout(()=>{
+    ringtone.pause(); ringtone.currentTime=0;
+    document.body.classList.remove('ripple-droplet');
+    showKeypad();
+    playRandomAudio();
+  },5000);
+}
+
+function showKeypad(){
+  screen.innerHTML=`
+    <div>
+      <h1>${text[lang].pilih}</h1>
+      <div class="keypad">
+        <button data-k>1</button>
+        <button data-k>2</button>
+        <button data-k>3</button>
+        <button data-k>4</button>
+      </div>
+    </div>`;
+  document.querySelectorAll('[data-k]').forEach(b=>{
+    b.addEventListener('pointerup',endCall);
+  });
+}
+
+function playRandomAudio(){
+  const n=Math.floor(Math.random()*4)+1;
+  currentAudio=document.getElementById(lang==='ms'?'audio'+n:'audio_eng'+n);
+  player.style.display='flex';
+  playerMessage.textContent=text[lang].playing;
+  repeatBtn.textContent=text[lang].repeat;
+  bar.style.width='0%';
+  safePlay(currentAudio);
+  currentAudio.onplaying=animateBar;
+}
+
+function animateBar(){
+  cancelAnimationFrame(rafId);
+  function frame(){
+    if(!currentAudio || currentAudio.paused) return;
+    if(currentAudio.duration && isFinite(currentAudio.duration)){
+      bar.style.width = Math.min(100,(currentAudio.currentTime/currentAudio.duration)*100)+'%';
+    }
+    rafId=requestAnimationFrame(frame);
+  }
+  rafId=requestAnimationFrame(frame);
+}
+
+function endCall(){
+  stopAllAudio();
+  screen.innerHTML=`
+    <div>
+      <div style="font-size:26px;font-weight:700">${text[lang].thanks}</div>
+      <div>${text[lang].card}</div>
+    </div>`;
+  setTimeout(renderWelcome,4500);
+}
+
+repeatBtn.onclick=()=>{
+  if(currentAudio){
+    currentAudio.currentTime=0;
+    safePlay(currentAudio);
+    animateBar();
+  } 
+};
+
+document.getElementById('langMs').onclick=()=>{lang='ms';renderWelcome();};
+document.getElementById('langEn').onclick=()=>{lang='en';renderWelcome();};
+
+renderWelcome();
+</script>
+</body>
+</html>
